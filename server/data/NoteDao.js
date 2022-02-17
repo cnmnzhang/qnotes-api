@@ -1,4 +1,4 @@
-const Note = require("../model/Node");
+const Note = require("../model/Note");
 const ApiError = require("../model/ApiError")
 
 // Data access object
