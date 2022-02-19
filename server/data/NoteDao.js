@@ -1,10 +1,11 @@
 const Note = require("../model/Note");
-const ApiError = require("../model/ApiError")
+const ApiError = require("../model/ApiError");
+const { default: mongoose } = require("mongoose");
 
 // Data access object
 class NoteDao {
 
-    async create({ title, text }) {
+    async create({ title, text, author }) {
         if (title === undefined || title === "") {
             throw new ApiError(400, "Every note must have a none-empty title!");
         }
@@ -12,45 +13,65 @@ class NoteDao {
         if (text === undefined) {
             throw new ApiError(400, "Every note must have a text attribute!");
         }
-        const note = await Note.create({ title, text });
+
+        if (!author || !mongoose.isValidObjectId(author)) {
+            throw new ApiError(400, "Every not must have an author!");
+        }
+
+        const note = await Note.create({ title, text, author });
         return note;
     }
 
-    async update(id, { title, text }) {
-        const note = await Note.findByIdAndUpdate(
-            id, 
+    async update(author, id, { title, text }) {
+        await this.read(author, id);
+        return Note.findByIdAndUpdate(
+            id,
             { title, text },
-            { new: true, runValidator: true }
+            { new: true, runValidators: true }
         );
-
-        if (note === null) {
-            throw new ApiError(404, "There is no note with the given ID!");
-        }
-
-        return note;
     }
 
-    async delete(id) {
-        const note = await Note.findByIdAndDelete(id);
-
-        if (note === null) {
-            throw new ApiError(404, "There is no note with the given ID!");
-        }
-        
-        return note;
+    async delete(author, id) {
+        await this.read(author, id);
+        return Note.findByIdAndDelete(id);
     }
 
-    async read(id) {
+
+    async read(author, id) {
         const note = await Note.findById(id);
-        return note ? note: [];
+
+        if (!author || !mongoose.isValidObjectId(author)) {
+            throw new ApiError(500, "Author attribute was is invalid or missing!");
+        }
+
+        if (note === null) {
+            throw new ApiError(404, "There is no note with the given ID!");
+        }
+
+        if (note.author.toString() !== author) {
+            throw new ApiError(
+                403,
+                "You are not authorized to access this resource!"
+            );
+        }
+
+        return note;
     }
 
-    async readAll(query = "") {
-        if (query !== "") {
-            const notes = await Note.find().or([{ title: query }, { text: guery }]);
-            return notes;
+
+    async readAll(author, query = "") {
+        if (!author || !mongoose.isValidObjectId(author)) {
+            throw new ApiError(500, "Author attribute was is invalid or missing!");
         }
-        const notes = await Note.find({});
+
+        const notes = await Note.find({ author });
+
+        if (query !== "") {
+            return notes.filter(
+                (note) => note.title.includes(query) || note.text.includes(query)
+            );
+        }
+
         return notes;
     }
 }

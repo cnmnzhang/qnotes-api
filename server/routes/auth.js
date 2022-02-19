@@ -52,9 +52,7 @@ router.post("verify", async (req, res) => {
 
     if (!isValid) {
         return res.status(403).json ({
-            return res.status(403).json({
-                mess: "Invalid or expired token!"
-            })
+            message: "Invalid or expired token!"
         })
     }
 
