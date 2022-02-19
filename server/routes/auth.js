@@ -1,5 +1,7 @@
 const express = require("express");
 const UserDao = require("../data/UserDao");
+const { verifyPassword } = require("../util/hashing");
+const { createToken, verifyToken } = require("../util/token");
 
 const router = express.Router();
 const users = new UserDao();
@@ -27,19 +29,39 @@ router.post("/authenticate", async (req, res) => {
         const user = await users.readOne(username);
 
         // Authentication
-        if (!user || user.password !== password) {
+        const isAuthenticated = await verifyPassword(password, user ? user.password : "");
+        if (!isAuthenticated) {
             return res.status(403).json({
                 message: "Wrong username or password!",
             });
         } else {
+            const token = createToken(user);
             return res.json({
                 message: "Authentication successful!",
-                data: user,
+                token: token,
             });
         }
     } catch (err) {
         return res.status(err.status || 500).json({ message: err.message });
     }
 });
+
+router.post("verify", async (req, res) => {
+    const { token } = req.body;
+    const isValid = await verifyToken(token);
+
+    if (!isValid) {
+        return res.status(403).json ({
+            return res.status(403).json({
+                mess: "Invalid or expired token!"
+            })
+        })
+    }
+
+    return res.json({
+        message: "Token verified, and it is valid!",
+        token: token
+    });
+})
 
 module.exports = router;
