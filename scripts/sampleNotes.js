@@ -1,30 +1,20 @@
-const mongoose = require("mongoose")
+const faker = require("faker");
+const db = require("../server/data/db");
+const NoteDao = require("../server/data/NoteDao");
 
-const URI = `mongodb+srv://czhan117:zRDR70URC1fR5KiO@quicknote.0vexa.mongodb.net/quickNoteDB?retryWrites=true&w=majority`;
+async function createSampleNotes() {
+  try {
+    await db.connect();
 
-mongoose
-    .connect(URI)
-    .then(() => {
-        console.log("Connected to MongoDB!");
-    })
-    .catch((err) => {
-        console.log(err)
-    })
+    const notes = new NoteDao();
+    const note = await notes.create({
+      title: "a",
+      text: "b",
+    });
+    console.log(note);
+  } catch (err) {
+    console.log(err);
+  }
+}
 
-const NoteSchema = new mongoose.Schema({
-    title: { type: String },
-    text: { type: String }
-})
-
-const Note = mongoose.model("Note", NoteSchema);
-
-Note.create(
-    {
-        title: "faker..sentence()",
-        text: "faker..paragraph()",
-    },
-    (err, note) => {
-        console.log(err ? err : note);
-    }
-);
-
+createSampleNotes();
